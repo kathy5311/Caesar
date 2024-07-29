@@ -1,0 +1,7 @@
+## Caesar ignore file
+*.log
+*.txt
+*.err
+*.pdb
+*.npz
+*.job
