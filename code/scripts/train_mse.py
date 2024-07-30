@@ -1,7 +1,15 @@
+import sys
+import os
+
+# 현재 파일의 디렉토리 경로
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# src 디렉토리를 경로에 추가
+sys.path.append(os.path.join(current_dir, '..', 'src'))
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import os
 import numpy as np
 from model.all_atom_model import MyModel
 from dataset import DataSet, collate
@@ -48,7 +56,7 @@ def load_model(args_in,silent=False):
         train_loss = train_loss_empty
         valid_loss = valid_loss_empty
 
-        modelpath = os.path.join("models", args_in.modelname)
+        modelpath = os.path.join("/home/kathy531/Caesar/code/scripts/models", args_in.modelname)
         if not os.path.isdir(modelpath):
             if not silent: print("Creating a new dir at", modelpath)
             os.mkdir(modelpath)

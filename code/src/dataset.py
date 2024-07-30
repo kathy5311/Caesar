@@ -31,7 +31,7 @@ class DataSet(torch.utils.data.Dataset):
         protein,resno = target.split('.')
         resname,resno=resno.split(' ')
         
-        npzf = self.datapath + '/' + protein + '.prop.npz'
+        npzf = self.datapath + '/' + protein + '_rev.prop.npz'
         labelf = self.datapath + '/' + protein + '.label.npz'
         t1 = time.time()
         data = np.load(npzf,allow_pickle=True)
@@ -150,13 +150,7 @@ class DataSet(torch.utils.data.Dataset):
         # 4. assign edge features
         bnds = data['bnds_rec']
         bnds_bin = np.zeros((len(xyz),len(xyz)))
-        print("bnds")
-        print(bnds)
-        print(bnds.shape)
-        print("bnds_bin")
-        print(bnds_bin)
-        print(bnds_bin.shape)
-        print()
+
         # re-index atms due to trimming
         # new way -- just iter through bonds
         for i,j in bnds:
