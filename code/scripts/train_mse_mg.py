@@ -3,7 +3,7 @@ import os
 
 # 현재 파일의 디렉토리 경로
 current_dir = os.path.dirname(os.path.abspath(__file__))
-
+#print(current_dir)
 # src 디렉토리를 경로에 추가
 sys.path.append(os.path.join(current_dir, '..', 'src'))
 
@@ -31,7 +31,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 ###
 
-args.modelname='prac_0730'
+args.modelname='prac_0805_big'
 def load_model(args_in,rank=0,silent=False):
     device = torch.device("cuda:%d"%rank if (torch.cuda.is_available()) else "cpu")
     ## model
@@ -45,9 +45,9 @@ def load_model(args_in,rank=0,silent=False):
     epoch=0
     optimizer=torch.optim.Adam(model.parameters(),lr=args_in.LR,weight_decay=1e-5)
 
-    if os.path.exists("models/%s/model.pkl"%args_in.modelname):
+    if os.path.exists("/home/kathy531/Caesar/code/scripts/models/%s/model.pkl"%args_in.modelname):
         if not silent: print("Loading a checkpoint")
-        checkpoint = torch.load(os.path.join("models", args_in.modelname, "model.pkl"),map_location=device)
+        checkpoint = torch.load(os.path.join("/home/kathy531/Caesar/code/scripts/models", args_in.modelname, "model.pkl"),map_location=device)
 
         trained_dict = {}
         model_dict = model.state_dict()
@@ -248,7 +248,7 @@ def main( rank, world_size, dumm ):
                 'optimizer_state_dict': optimizer.state_dict(),
                 'train_loss': train_loss,
                 'valid_loss': valid_loss,
-            }, os.path.join("models", args.modelname, "best.pkl"))
+            }, os.path.join("/home/kathy531/Caesar/code/scripts/models", args.modelname, "best.pkl"))
 
         torch.save({
             'epoch': epoch,
@@ -256,7 +256,7 @@ def main( rank, world_size, dumm ):
             'optimizer_state_dict': optimizer.state_dict(),
             'train_loss': train_loss,
             'valid_loss': valid_loss,
-        }, os.path.join("models", args.modelname, "model.pkl"))
+        }, os.path.join("/home/kathy531/Caesar/code/scripts/models", args.modelname, "model.pkl"))
 
 
 if __name__ == "__main__":
