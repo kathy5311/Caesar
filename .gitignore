@@ -5,3 +5,6 @@
 *.pdb
 *.npz
 *.job
+*.py.swp
+*.pyc
+
