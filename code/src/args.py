@@ -4,7 +4,7 @@ class Argument:
         self.dropout_rate = dropout_rate
         self.nbatch =30
         
-        self.maxepoch = 30
+        self.maxepoch = 80
         self.datapath = '/home/kathy531/Caesar/data/npz0729/'
         self.dataf_train = '/home/kathy531/Caesar/code/notebooks/train_validset/train_list0730.txt'
         self.dataf_valid = '/home/kathy531/Caesar/code/notebooks/train_validset/valid_list0730.txt'
