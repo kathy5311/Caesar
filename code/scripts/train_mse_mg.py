@@ -261,7 +261,7 @@ def main( rank, world_size, dumm ):
 
 if __name__ == "__main__":
     mp.freeze_support() #multi process에서는 이 메인 구문을 실행하지 않겠다.
-
+    torch.set_num_threads( int( os.getenv('SLURM_CPUS_PER_TASK', 4) ) )
     world_size=torch.cuda.device_count()
     print("Using %d GPUs.."%world_size)
 
