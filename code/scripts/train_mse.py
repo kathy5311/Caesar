@@ -15,7 +15,7 @@ from model.all_atom_model import MyModel
 from dataset import DataSet, collate
 from args import args_default as args
 
-args.modelname='prac'
+args.modelname='prac_0813'
 def load_model(args_in,silent=False):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     ## model
@@ -124,7 +124,8 @@ def run_an_epoch(model, optimizer, data_loader, train, verbose=False):
                     pred.requires_grad_(True)
                     
                 mask = mask.to(device)
-
+                print('mask size:', mask.shape)
+                print('pred size:', pred.shape)
                 #pred와 Mask 속에 nan값 있는지 확인
                 if (torch.isnan(pred).sum()!=0):
                     print("pred nan")
