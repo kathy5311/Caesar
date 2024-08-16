@@ -58,6 +58,7 @@ class DataSet(torch.utils.data.Dataset):
             digitized_label=max(0,min(25,digitized_label))
 
             label=torch.tensor(digitized_label)
+            #print('label_db', label)
         except:
         
             return None, None, None, None, None
@@ -107,10 +108,12 @@ class DataSet(torch.utils.data.Dataset):
         # exclude self-connection
         D_neighbor =  D_neighbors[:,:,1:]
         E_idx = E_idx[:,:,1:]
-        
+        #print("D_neighbor size", D_neighbors.shape)
+        #print("E_idx.shape",E_idx.shape)
         u = torch.tensor(np.arange(E_idx.shape[1]))[:,None].repeat(1, E_idx.shape[2]).reshape(-1)
         v = E_idx[0,].reshape(-1)
         G = dgl.graph((u,v)) # build graph
+        #print(G.edges())
         t2 = time.time()
 
         # 3. assign node features

@@ -1,15 +1,16 @@
-pdb0001list=[]
-with open('pdb0001list.txt','r') as p:
+labellist=[]
+with open('label_finlist.txt','r') as p:
     for line in p:
-        line=line[:6]+".pdb\n"
-        pdb0001list.append(line)
-print(len(pdb0001list))
+        line=line[2:6]
+        labellist.append(line)
+print(len(labellist))
 p.close()
 
-with open('extrafeat.txt', 'w+') as f:
-    with open('pdblist.txt','r') as w:
+with open('prop_label.txt', 'w+') as f:
+    with open('prop_finlist.txt','r') as w:
         for line in w:
-            if line in pdb0001list: continue
-            f.write(line)
+            line=line[2:6]
+            if line in labellist: f.write(line+"\n")
+
 f.close()
 w.close()
