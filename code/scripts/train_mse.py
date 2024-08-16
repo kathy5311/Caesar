@@ -15,7 +15,7 @@ from model.all_atom_model import MyModel
 from dataset import DataSet, collate
 from args import args_default as args
 
-args.modelname='prac_0813'
+args.modelname='prac_ver'
 def load_model(args_in,silent=False):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     ## model
@@ -161,6 +161,7 @@ def run_an_epoch(model, optimizer, data_loader, train, verbose=False):
                 expected=expected.to(device)
                 
                 loss2 = lossfunc_mse(expected, label_int.float())
+                print(loss1)
                 loss = loss1 + loss2
                 
                 
