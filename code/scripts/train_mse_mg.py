@@ -31,7 +31,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 ###
 
-args.modelname='prac_0805_big'
+args.modelname='bal_0820'
 def load_model(args_in,rank=0,silent=False):
     device = torch.device("cuda:%d"%rank if (torch.cuda.is_available()) else "cpu")
     ## model
