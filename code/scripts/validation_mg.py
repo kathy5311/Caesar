@@ -160,6 +160,6 @@ if __name__ == "__main__":
     if 'MASTER_ADDR' not in os.environ:
         os.environ['MASTER_ADDR'] = 'localhost'
     if 'MASTER_PORT' not in os.environ:
-        os.environ['MASTER_PORT'] = '12492'
+        os.environ['MASTER_PORT'] = '12292'
 
     mp.spawn(main, args=(world_size,), nprocs=world_size, join=True)

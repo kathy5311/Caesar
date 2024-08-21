@@ -4,10 +4,10 @@ class Argument:
         self.dropout_rate = dropout_rate
         self.nbatch =20
         
-        self.maxepoch = 80
+        self.maxepoch = 400
         self.datapath = '/home/kathy531/Caesar/data/npz0729/'
-        self.dataf_train = '/home/kathy531/Caesar/code/notebooks/train_list_0730(bigtotal).txt'
-        self.dataf_valid = '/home/kathy531/Caesar/code/notebooks/train_list_0730(bigtotal).txt'
+        self.dataf_train = '/home/kathy531/Caesar/code/notebooks/train_validset/trainset_bal_0820.txt'
+        self.dataf_valid = '/home/kathy531/Caesar/code/notebooks/train_validset/validset_bal_0820.txt'
         self.LR = 1.0e-4 #1.0e-4
         self.topk = 32
         self.n_input_feats = 106 #99 (# of nodefeat:3)

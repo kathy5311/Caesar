@@ -12,8 +12,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from model.all_atom_model import MyModel
-from dataset import DataSet, collate
-from args import args_default as args
+from src.dataset import DataSet, collate
+from src.args import args_default as args
 
 args.modelname='prac_ver'
 def load_model(args_in,silent=False):
