@@ -31,7 +31,9 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 ###
 
-args.modelname='bal_0820'
+args.modelname='bal_0823_prac'
+
+    
 def load_model(args_in,rank=0,silent=False):
     device = torch.device("cuda:%d"%rank if (torch.cuda.is_available()) else "cpu")
     ## model
@@ -120,7 +122,13 @@ def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
         print(i)
         #print(data_loader[i])
         print()'''
-    
+    # rank가 0일 때만 verbose 켜주기--sol 1
+    if rank == 0: 
+        verbose =True
+    else:
+         verbose= False
+         
+    verbl=''
     for i,(G,label,mask,info,label_int) in enumerate(data_loader):
         if len(label) == 0:
         #    nerr += 1
@@ -178,12 +186,12 @@ def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
                         pass
 
                     if verbose:
-                        verbl = f'Rank {rank}:'
+                        
                         for tag,l,ex in zip(info['target'], label_int, expected):
                             
-                            verbl += f"{tag:9s} {l.item():.4f} {ex.item():.4f}|"
-                        print(verbl)
-
+                            verbl += f"Rank {rank}: {tag:9s} {l.item():.4f} {ex.item():.4f}|"
+              
+                        verbl += '\n'
                         '''
                         for tag,S,l in zip(info['target'], label_int, expected):
 
@@ -199,7 +207,7 @@ def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
                     loss_tmp['total'].append(loss.cpu().detach().numpy())
                 else:
                     continue
-    return loss_tmp
+    return loss_tmp, verbl
 
 def main( rank, world_size, dumm ):
     #nan detect function
@@ -220,7 +228,7 @@ def main( rank, world_size, dumm ):
         # if epoch==init_epoch+1:
            # break
         model.train()
-        loss_t =run_an_epoch(model, optimizer, train_loader, True, rank, verbose=True)
+        loss_t,verbl =run_an_epoch(model, optimizer, train_loader, True, rank, verbose=True)
 
         for key in train_loss:
             train_loss[key].append(np.array(loss_t[key]))
@@ -228,7 +236,7 @@ def main( rank, world_size, dumm ):
         #model.eval()
         with torch.no_grad():
             model.eval()
-            loss_v = run_an_epoch(model, optimizer, valid_loader, False, rank,
+            loss_v, verbl = run_an_epoch(model, optimizer, valid_loader, False, rank,
                                   (args.verbose and epoch == args.maxepoch-1) )
 
         for key in valid_loss:
@@ -239,8 +247,9 @@ def main( rank, world_size, dumm ):
 
         print("Train/Valid: %3d %8.4f %8.4f"%(epoch, float(np.mean(loss_t['total'])),
                                               float(np.mean(loss_v['total']))))
-
-
+        
+        
+        
         if np.min([np.mean(vl) for vl in valid_loss["total"]]) == np.mean(valid_loss["total"][-1]):
             torch.save({
                 'epoch': epoch,
@@ -268,7 +277,7 @@ if __name__ == "__main__":
     if ('MASTER_ADDR' not in os.environ):
         os.environ['MASTER_ADDR'] = 'localhost' # multinode requires this set in submit script
     if ('MASTER_PORT' not in os.environ):
-        os.environ['MASTER_PORT'] = '12346'
+        os.environ['MASTER_PORT'] = '12326'
 
     mp.spawn(main,args=(world_size,0),nprocs=world_size,join=True)
     

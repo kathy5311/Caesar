@@ -33,8 +33,9 @@ class DataSet(torch.utils.data.Dataset):
         
         npzf = self.datapath + '/' + protein + '_rev.prop.npz'
         labelf = self.datapath + '/' + protein + '.label.npz'
-        t1 = time.time()
+        
         data = np.load(npzf,allow_pickle=True)
+        t1 = time.time()
         #print(data)
         
         #print(label_value['label'])
@@ -66,7 +67,7 @@ class DataSet(torch.utils.data.Dataset):
         
         info = {'target':target}
         t9 = time.time()
-        #print("?", G.number_of_nodes(), t1-t0, t2-t1, t9-t2)
+        #print("?", G.number_of_nodes(), t1-t0, t2-t1, t9-t2, t9-t0)
 
         return G, label, mask, info, label_int
         
@@ -129,6 +130,8 @@ class DataSet(torch.utils.data.Dataset):
         phi_sin= data['phi_sin_narray'][:,None][idx_ord]
         psi_cos= data['psi_cos_narray'][:,None][idx_ord]
         psi_sin= data['psi_sin_narray'][:,None][idx_ord]
+        #key를 조금 줄이면 속도가 조금 빨리 증가할수도?
+        #ex. C_one,H_one,E_one을 키 하나로 추적할 수 있도록 변경 -> 'CHE_narray'
         nodefeats = [aas,atypes,sasa,C_one,H_one,E_one,phi_cos,phi_sin,psi_cos,psi_sin]
         '''
         print("aas")

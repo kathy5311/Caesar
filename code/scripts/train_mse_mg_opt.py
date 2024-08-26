@@ -1,6 +1,6 @@
 import sys
 import os
-
+import matplotlib.pyplot as plt
 # 현재 파일의 디렉토리 경로
 current_dir = os.path.dirname(os.path.abspath(__file__))
 #print(current_dir)
@@ -31,7 +31,51 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 ###
 
-args.modelname='bal_0820'
+args.modelname='scatter_0825'
+def scatter_plot(args_in,d_pred, d_label, d_pred_bin,d_label_bin,epoch,train):
+    if train:
+        save_dir = f"/home/kathy531/Caesar/code/scripts/models/{args_in.modelname}/train"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+        
+        correct = (d_pred_bin==d_label_bin).sum()
+        accu = correct/len(d_label_bin)
+        #cpu 변환 필요 없고
+        #view(-1)로 바꿔주면 빨라짐
+        plt.figure(figsize=(8,8))
+        #print(d_label.shape)
+        plt.scatter(d_label, d_pred, alpha=0.5)
+        plt.xlabel('Label')
+        plt.ylabel('Pred')
+        space=np.linspace(*plt.xlim(),100)
+        plt.plot(space,space, 'r--')
+        plt.title(f'Scatter Plot of Epoch{epoch}\n Accuracy Bin: {accu}')
+        plt.grid(True)
+        
+        plot_filename=f"scatter_epoch_{epoch}.png"
+        plt.savefig(os.path.join(save_dir, plot_filename))
+        plt.close()
+    else:
+        save_dir = f"/home/kathy531/Caesar/code/scripts/models/{args_in.modelname}/valid"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        correct = (d_pred_bin==d_label_bin).sum()
+        accu = correct/len(d_label_bin)
+        plt.figure(figsize=(8,8))
+        plt.scatter(d_label, d_pred, alpha=0.5)
+        plt.xlabel('Label')
+        plt.ylabel('Pred')
+        space=np.linspace(*plt.xlim(),100)
+        plt.plot(space,space, 'r--')
+        plt.title(f'Scatter Plot of Epoch{epoch}\n Accuracy Bin: {accu}')
+        plt.grid(True)
+        
+        plot_filename=f"scatter_epoch_{epoch}.png"
+        plt.savefig(os.path.join(save_dir, plot_filename))
+        plt.close()
+        
+        
 def load_model(args_in,rank=0,silent=False):
     device = torch.device("cuda:%d"%rank if (torch.cuda.is_available()) else "cpu")
     ## model
@@ -87,7 +131,7 @@ def load_model(args_in,rank=0,silent=False):
 def load_data(dataf, world_size, rank):
     loader_params = {
         'shuffle': False, #should be False with ddp
-        'num_workers': 10,  # num_workers 조정-> 여러 실험 방법 존재. 노션 참조
+        'num_workers': 5,  # num_workers 조정-> 여러 실험 방법 존재. 노션 참조
         'pin_memory': True,
         'collate_fn': collate,
         'batch_size': args.nbatch,
@@ -108,7 +152,6 @@ def load_data(dataf, world_size, rank):
     return train_loader, valid_loader
 
 def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
-    import sys
     lossfunc = torch.nn.CrossEntropyLoss()
     lossfunc_mse = torch.nn.MSELoss()
 
@@ -121,6 +164,14 @@ def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
         #print(data_loader[i])
         print()'''
     
+    #For optim
+    # 텐서로 받고 여기에서 cpu로 변환하여라
+
+    d_pred=torch.tensor([]).to(device)
+    d_label=torch.tensor([]).to(device)
+    d_pred_bin = torch.tensor([]).to(device)
+    d_label_bin = torch.tensor([]).to(device)
+
     for i,(G,label,mask,info,label_int) in enumerate(data_loader):
         if len(label) == 0:
         #    nerr += 1
@@ -158,7 +209,9 @@ def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
 
                     loss1 = lossfunc(Ssum,label)
                     Ssum_soft=F.softmax(Ssum,dim=1)
-
+                    #최대 빈 예측
+                    expected_bin = torch.argmax(Ssum_soft, dim=1)
+                    
                     range_tensor=torch.tensor([0.05,0.15,0.25,0.35,0.45,0.55,0.65,0.75,0.85,0.95,1.05,1.15,1.25,1.35,1.45,1.55,1.65,1.75,1.85,1.95,2.05,2.15,2.25,2.35,2.45,2.55])
                     range_tensor=range_tensor.to(device)
                     expected=torch.sum(Ssum_soft * range_tensor, dim=1)
@@ -176,30 +229,23 @@ def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
                             optimizer.step()
                     else:
                         pass
-
+                    
+                    if rank!=0:
+                        verbose = False
+                    
                     if verbose:
-                        verbl = f'Rank {rank}:'
-                        for tag,l,ex in zip(info['target'], label_int, expected):
-                            
-                            verbl += f"{tag:9s} {l.item():.4f} {ex.item():.4f}|"
-                        print(verbl)
-
-                        '''
-                        for tag,S,l in zip(info['target'], label_int, expected):
-
-                        verbl += f"{tag:9s} {S:.4f} {l:.4f} | "
-                        if torch.isnan(S).any() or torch.isnan(label).any():
-                        print("S: ",torch.isnan(S).any())
-                        print("label: ",torch.isnan(label).any())
-                        print(tag)
-                        sys.exit()
-                        '''
+                        
+                        d_pred = torch.cat((d_pred, expected.view(-1, 1)), dim=0)
+                        d_label = torch.cat((d_label, label_int.view(-1, 1)), dim=0)
+                        d_pred_bin = torch.cat((d_pred_bin, expected_bin.view(-1, 1)), dim=0)
+                        d_label_bin = torch.cat((d_label_bin, label.view(-1, 1)), dim=0)
 
                     loss_tmp['loss1'].append(loss1.cpu().detach().numpy())
                     loss_tmp['total'].append(loss.cpu().detach().numpy())
                 else:
                     continue
-    return loss_tmp
+                
+    return loss_tmp, d_pred.cpu().detach().numpy(), d_label.cpu().detach().numpy(), d_pred_bin.cpu().detach().numpy(), d_label_bin.cpu().detach().numpy()
 
 def main( rank, world_size, dumm ):
     #nan detect function
@@ -207,7 +253,7 @@ def main( rank, world_size, dumm ):
 
     ### add or modified
     gpu = rank%world_size
-    dist.init_process_group(backend='gloo',world_size=world_size,rank=rank) #gloo, NCCL -> backend type (NCCL only when building with CUDA)
+    dist.init_process_group(backend='nccl',world_size=world_size,rank=rank) #gloo, NCCL -> backend type (NCCL only when building with CUDA)
 
     model,optimizer,init_epoch,train_loss,valid_loss = load_model(args, rank)
     train_loader, valid_loader = load_data(args, world_size, rank)
@@ -220,17 +266,24 @@ def main( rank, world_size, dumm ):
         # if epoch==init_epoch+1:
            # break
         model.train()
-        loss_t =run_an_epoch(model, optimizer, train_loader, True, rank, verbose=True)
+        loss_t, d_pred_train, d_label_train, d_pred_bin_train, d_label_bin_train =run_an_epoch(model, optimizer, train_loader, True, rank, verbose=True)
 
         for key in train_loss:
             train_loss[key].append(np.array(loss_t[key]))
-
+        
+        if rank == 0 and d_pred_train is not None:
+            scatter_plot(args, d_pred_train, d_label_train, d_pred_bin_train, d_label_bin_train,epoch, train=True)
+            
+            
         #model.eval()
         with torch.no_grad():
             model.eval()
-            loss_v = run_an_epoch(model, optimizer, valid_loader, False, rank,
-                                  (args.verbose and epoch == args.maxepoch-1) )
+            loss_v, d_pred_valid, d_label_valid, d_pred_bin_valid, d_label_bin_valid = run_an_epoch(model, optimizer, valid_loader, False, rank,
+                                  verbose= True )
 
+        if (rank == 0) and d_pred_valid is not None:
+            scatter_plot(args, d_pred_valid, d_label_valid, d_pred_bin_valid, d_label_bin_valid,epoch, train=False)
+            
         for key in valid_loss:
             valid_loss[key].append(np.array(loss_v[key]))
 
@@ -257,6 +310,11 @@ def main( rank, world_size, dumm ):
             'train_loss': train_loss,
             'valid_loss': valid_loss,
         }, os.path.join("/home/kathy531/Caesar/code/scripts/models", args.modelname, "model.pkl"))
+        
+        # Free up memory after each epoch
+        del d_pred_train, d_label_train, d_pred_bin_train, d_label_bin_train
+        del d_pred_valid, d_label_valid, d_pred_bin_valid, d_label_bin_valid
+        torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":
@@ -268,7 +326,7 @@ if __name__ == "__main__":
     if ('MASTER_ADDR' not in os.environ):
         os.environ['MASTER_ADDR'] = 'localhost' # multinode requires this set in submit script
     if ('MASTER_PORT' not in os.environ):
-        os.environ['MASTER_PORT'] = '12346'
+        os.environ['MASTER_PORT'] = '12481'
 
     mp.spawn(main,args=(world_size,0),nprocs=world_size,join=True)
     

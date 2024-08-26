@@ -6,7 +6,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 #print(current_dir)
 # src 디렉토리를 경로에 추가
 sys.path.append(os.path.join(current_dir, '..', 'src'))
-
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,6 +14,7 @@ import numpy as np
 from model.all_atom_model import MyModel
 from dataset import DataSet, collate
 from args import args_default as args
+from torch.cuda.amp import autocast, GradScaler
 '''
 import torch
 import torch.nn as nn
@@ -31,7 +32,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 ###
 
-args.modelname='bal_0820'
+args.modelname='amp_0825'
 def load_model(args_in,rank=0,silent=False):
     device = torch.device("cuda:%d"%rank if (torch.cuda.is_available()) else "cpu")
     ## model
@@ -87,7 +88,7 @@ def load_model(args_in,rank=0,silent=False):
 def load_data(dataf, world_size, rank):
     loader_params = {
         'shuffle': False, #should be False with ddp
-        'num_workers': 10,  # num_workers 조정-> 여러 실험 방법 존재. 노션 참조
+        'num_workers': 12,  # num_workers 조정-> 여러 실험 방법 존재. 노션 참조 보통 GPU*4
         'pin_memory': True,
         'collate_fn': collate,
         'batch_size': args.nbatch,
@@ -108,7 +109,7 @@ def load_data(dataf, world_size, rank):
     return train_loader, valid_loader
 
 def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
-    import sys
+
     lossfunc = torch.nn.CrossEntropyLoss()
     lossfunc_mse = torch.nn.MSELoss()
 
@@ -120,14 +121,15 @@ def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
         print(i)
         #print(data_loader[i])
         print()'''
-    
+
     for i,(G,label,mask,info,label_int) in enumerate(data_loader):
         if len(label) == 0:
         #    nerr += 1
         #    print('error ', nerr, i)
             continue
         ### added
-        with torch.cuda.amp.autocast(enabled=False):
+        with autocast(enabled=False):
+            scaler = GradScaler()
             with model.no_sync(): #should be commented if
         ###
                 if type(G) != list:
@@ -166,39 +168,30 @@ def run_an_epoch(model, optimizer, data_loader, train, rank=0, verbose=False):
 
                     loss2 = lossfunc_mse(expected, label_int.float())
                     loss = loss1 + loss2
+                else: continue
 
 
-                    if train:
-                        if (torch.isnan(loss).sum() == 0): #adidng no nan values
-                            optimizer.zero_grad()
-                            loss.backward()
-                            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
-                            optimizer.step()
-                    else:
-                        pass
+        if train:
+            if (torch.isnan(loss).sum() == 0): #adidng no nan values
+                optimizer.zero_grad()
+                scaler.scale(loss).backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                pass
+  
+        if verbose:
+            verbl = f'Rank {rank}:'
+            for tag,l,ex in zip(info['target'], label_int, expected):
+                
+                verbl += f"{tag:9s} {l.item():.4f} {ex.item():.4f}|"
+            print(verbl)
 
-                    if verbose:
-                        verbl = f'Rank {rank}:'
-                        for tag,l,ex in zip(info['target'], label_int, expected):
-                            
-                            verbl += f"{tag:9s} {l.item():.4f} {ex.item():.4f}|"
-                        print(verbl)
 
-                        '''
-                        for tag,S,l in zip(info['target'], label_int, expected):
+        loss_tmp['loss1'].append(loss1.cpu().detach().numpy())
+        loss_tmp['total'].append(loss.cpu().detach().numpy())
 
-                        verbl += f"{tag:9s} {S:.4f} {l:.4f} | "
-                        if torch.isnan(S).any() or torch.isnan(label).any():
-                        print("S: ",torch.isnan(S).any())
-                        print("label: ",torch.isnan(label).any())
-                        print(tag)
-                        sys.exit()
-                        '''
-
-                    loss_tmp['loss1'].append(loss1.cpu().detach().numpy())
-                    loss_tmp['total'].append(loss.cpu().detach().numpy())
-                else:
-                    continue
     return loss_tmp
 
 def main( rank, world_size, dumm ):
@@ -220,6 +213,7 @@ def main( rank, world_size, dumm ):
         # if epoch==init_epoch+1:
            # break
         model.train()
+
         loss_t =run_an_epoch(model, optimizer, train_loader, True, rank, verbose=True)
 
         for key in train_loss:
