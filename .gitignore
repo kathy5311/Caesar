@@ -7,4 +7,5 @@
 *.job
 *.py.swp
 *.pyc
-
+*.csv
+*.png
