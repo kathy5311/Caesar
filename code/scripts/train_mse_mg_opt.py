@@ -1,3 +1,5 @@
+#verbl 과정을 그림으로 나타내는 코드
+#데이터가 너무 많으면 작동 불가
 import sys
 import os
 import matplotlib.pyplot as plt
