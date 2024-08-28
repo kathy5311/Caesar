@@ -1,8 +1,8 @@
 # 입력 파일 이름
-input_file = "total_dist.txt"
+input_file = "bin_list_balance_0820.csv"
 
 # 출력 파일 이름
-output_file = "total_dts.csv"
+output_file = "bin_list_balance_0820.csv"
 
 # 데이터를 쉼표로 구분하여 저장할 리스트
 output_data = []

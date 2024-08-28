@@ -16,7 +16,7 @@ with open('train_list_pocket_test.txt','w') as file:
 print(count)
 file.close()
 """
-with open('train_list.txt', 'r') as file:
+with open('/home/kathy531/Caesar/code/notebooks/balance_file/balanced_AA.txt', 'r') as file:
     data = file.readlines()
 file.close()
 print(data[:50])
@@ -32,7 +32,7 @@ valid_data=data[num_samples:]
 # 추출된 데이터를 파일에 쓰기
 
 count_t=0
-with open('trainset.txt', 'w') as file:
+with open('/home/kathy531/Caesar/code/notebooks/train_validset/trainset_bal_0820.txt', 'w') as file:
     for i in train_data:
         
         file.writelines(i)
@@ -41,7 +41,7 @@ print(count_t)
 file.close()
 
 count_v=0
-with open('validset.txt', 'w') as file:
+with open('/home/kathy531/Caesar/code/notebooks/train_validset/validset_bal_0820.txt', 'w') as file:
     for i in valid_data:
         count_v+=1
 
