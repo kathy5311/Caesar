@@ -9,3 +9,5 @@
 *.pyc
 *.csv
 *.png
+*.swp
+*.cpython-310.pyc
